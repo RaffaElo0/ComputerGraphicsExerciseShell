@@ -1,73 +1,36 @@
-﻿#include <iostream>
-#include <vector>
+﻿// OpenGL 3D Viewer Prototype Grundgerüst
+// Projektstruktur und Basisimplementierung (kompatibel mit CMake)
+
+// === 1. main.cpp ===
+#include "Cube.h"
+#include "Camera.h"
+#include "Model.h"
+
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include <imgui.h>
-#include <backends/imgui_impl_opengl3.h>
 #include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_opengl3.h>
+#include <iostream>
+#include <memory>
+
 
 // Globale Variablen
 bool isWireframe = false;
 glm::vec3 lightDirection(0.0f, -1.0f, -1.0f);
 glm::vec3 cubeColor(1.0f, 0.5f, 0.31f);
 glm::vec3 cubePosition(0.0f, 0.0f, 0.0f);
-unsigned int cubeVAO, cubeVBO, cubeEBO;
 
-// Shader mit Phong Shading
-const char* vertexShaderSource = R"glsl(
-    #version 330 core
-    layout (location = 0) in vec3 aPos;
-    layout (location = 1) in vec3 aNormal;
+// Fenster-Callback
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    glViewport(0, 0, width, height);
+}
 
-    uniform mat4 model;
-    uniform mat4 view;
-    uniform mat4 projection;
-
-    out vec3 FragPos;
-    out vec3 Normal;
-
-    void main()
-    {
-        FragPos = vec3(model * vec4(aPos, 1.0));
-        Normal = mat3(transpose(inverse(model))) * aNormal;
-        gl_Position = projection * view * vec4(FragPos, 1.0);
-    }
-)glsl";
-
-const char* fragmentShaderSource = R"glsl(
-    #version 330 core
-    in vec3 FragPos;
-    in vec3 Normal;
-
-    uniform vec3 lightDir;
-    uniform vec3 objectColor;
-
-    out vec4 FragColor;
-
-    void main()
-    {
-        float ambientStrength = 0.1;
-        vec3 ambient = ambientStrength * objectColor;
-
-        vec3 norm = normalize(Normal);
-        float diff = max(dot(norm, -lightDir), 0.0);
-        vec3 diffuse = diff * objectColor;
-
-        float specularStrength = 0.5;
-        vec3 viewDir = normalize(-FragPos);
-        vec3 reflectDir = reflect(lightDir, norm);
-        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-        vec3 specular = specularStrength * spec * vec3(1.0);
-
-        vec3 result = ambient + diffuse + specular;
-        FragColor = vec4(result, 1.0);
-    }
-)glsl";
-
-// ImGui
+// ImGui Setup
 void setupImGui(GLFWwindow* window) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -75,6 +38,7 @@ void setupImGui(GLFWwindow* window) {
     ImGui_ImplOpenGL3_Init("#version 330");
 }
 
+// ImGui Rendering
 void renderImGui() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -91,59 +55,8 @@ void renderImGui() {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-// Würfel
-void initCube() {
-    float vertices[] = {
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-    };
 
-    unsigned int indices[] = {
-        0, 1, 2, 2, 3, 0,
-        4, 5, 6, 6, 7, 4,
-        0, 1, 5, 5, 4, 0,
-        2, 3, 7, 7, 6, 2,
-        0, 3, 7, 7, 4, 0,
-        1, 2, 6, 6, 5, 1
-    };
 
-    glGenVertexArrays(1, &cubeVAO);
-    glGenBuffers(1, &cubeVBO);
-    glGenBuffers(1, &cubeEBO);
-
-    glBindVertexArray(cubeVAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cubeEBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    glBindVertexArray(0);
-}
-
-void renderCube(unsigned int shaderProgram) {
-    glm::mat4 model = glm::translate(glm::mat4(1.0f), cubePosition);
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
-    glUniform3fv(glGetUniformLocation(shaderProgram, "objectColor"), 1, glm::value_ptr(cubeColor));
-
-    glBindVertexArray(cubeVAO);
-    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
-}
-
-// Hauptprogramm
 int main() {
     if (!glfwInit()) {
         std::cerr << "GLFW init failed\n";
@@ -162,6 +75,8 @@ int main() {
     }
 
     glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cerr << "GLAD init failed\n";
         return -1;
@@ -169,11 +84,22 @@ int main() {
 
     glEnable(GL_DEPTH_TEST);
     setupImGui(window);
-    initCube();
+
+    Cube cube;
+    cube.init();
+
+    Camera camera(window);
+
+
+    std::shared_ptr<Model> model1 = std::make_shared<Model>("assets/Duck.obj");
+    std::shared_ptr<Model> model2 = std::make_shared<Model>("assets/teapot.obj");
+    std::shared_ptr<Model> model3 = std::make_shared<Model>("assets/dragon.obj");
+
+
 
     // Shader Setup
     unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    glShaderSource(vertexShader, 1, &cube.vertexShaderSource, NULL);
     glCompileShader(vertexShader);
 
     int success;
@@ -185,7 +111,7 @@ int main() {
     }
 
     unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+    glShaderSource(fragmentShader, 1, &cube.fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
     if (!success) {
@@ -203,6 +129,7 @@ int main() {
     // Render-Loop
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
+        camera.update();
 
         glPolygonMode(GL_FRONT_AND_BACK, isWireframe ? GL_LINE : GL_FILL);
         glClearColor(0.2f, 0.2f, 0.25f, 1.0f);
@@ -211,16 +138,26 @@ int main() {
         glUseProgram(shaderProgram);
         glUniform3fv(glGetUniformLocation(shaderProgram, "lightDir"), 1, glm::value_ptr(lightDirection));
 
-        glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),
-            glm::vec3(0.0f, 0.0f, 0.0f),
-            glm::vec3(0.0f, 1.0f, 0.0f));
-        glm::mat4 projection = glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+        glm::mat4 view = camera.getViewMatrix();
+        glm::mat4 projection = camera.getProjectionMatrix(800.0f / 600.0f);
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
-        renderCube(shaderProgram);
-        renderImGui();
+        // Würfel rendern
+        cube.setPosition(cubePosition);
+        cube.setColor(cubeColor);
+        cube.render(shaderProgram);
 
+        // Modelle rendern
+        glm::mat4 m1 = glm::translate(glm::mat4(1.0f), glm::vec3(-3.0f, 0.0f, 0.0f));
+        glm::mat4 m2 = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+        glm::mat4 m3 = glm::translate(glm::mat4(1.0f), glm::vec3(3.0f, 0.0f, 0.0f));
+
+        model1->draw(shaderProgram, m1);
+        model2->draw(shaderProgram, m2);
+        model3->draw(shaderProgram, m3);
+
+        renderImGui();
         glfwSwapBuffers(window);
     }
 

@@ -10,7 +10,7 @@ target_sources(project
     PRIVATE
 
     main.cpp
-)
+ "Cupe.cpp" "Cube.h" "Camera.cpp" "Camera.h" "Model.h" "Model.cpp")
 target_link_libraries(project
     PRIVATE
     glad

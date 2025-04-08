@@ -41,5 +41,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(glm)
 
 # Include sub-projects.
+include_directories(${CMAKE_SOURCE_DIR}/imported/tinygltf/include)
+
 add_subdirectory(imported)
 add_subdirectory(project)
