@@ -1,20 +1,22 @@
-﻿# CMakeList.txt : CMake project for computergraphics, include source and define
-# project specific logic here.
-#
+﻿cmake_minimum_required(VERSION 3.10)
 
-# Add source to this project's executable.
-project(project)
-add_executable(project)
+project(OpenGLViewer)
 
-target_sources(project
-    PRIVATE
-
+add_executable(OpenGLViewer
     main.cpp
- "Cupe.cpp" "Cube.h" "Camera.cpp" "Camera.h" "Model.h" "Model.cpp")
-target_link_libraries(project
-    PRIVATE
+    Cupe.cpp
+    Camera.cpp
+    Model.cpp
+)
+
+target_include_directories(OpenGLViewer PRIVATE
+    ${CMAKE_SOURCE_DIR}/imported/tinygltf
+)
+
+target_link_libraries(OpenGLViewer PRIVATE
     glad
     glfw
     glm::glm
     imgui
+    tinygltf
 )

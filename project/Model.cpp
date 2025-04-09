@@ -3,6 +3,10 @@
 #include <tiny_gltf.h>
 #include <iostream>
 
+#define TINYGLTF_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+
 Model::Model(const std::string& path) {
     loadModel(path);
 }
