@@ -42,6 +42,8 @@ FetchContent_MakeAvailable(glm)
 
 # Include sub-projects.
 include_directories(${CMAKE_SOURCE_DIR}/imported/tinygltf/include)
+include_directories(${CMAKE_SOURCE_DIR}/imported/nlohmannjson/include)
+include_directories(${CMAKE_SOURCE_DIR}/imported/stbi/include)
 
 add_subdirectory(imported)
 add_subdirectory(project)
