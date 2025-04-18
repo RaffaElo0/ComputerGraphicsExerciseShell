@@ -1,3 +1,12 @@
 [submodule "exercise/computergraphics/imported/glfw"]
 	path = exercise/computergraphics/imported/glfw
 	url = https://github.com/glfw/glfw.git
+[submodule "imported/glm"]
+	path = imported/glm
+	url = https://github.com/g-truc/glm.git
+[submodule "imported/assimp"]
+	path = imported/assimp
+	url = https://github.com/assimp/assimp.git
+[submodule "imported/stb"]
+	path = imported/stb
+	url = https://github.com/nothings/stb.git
